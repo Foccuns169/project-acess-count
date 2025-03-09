@@ -1,7 +1,13 @@
+import express from 'express';
 import mongoose from 'mongoose';
+import cors from 'cors';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
 
 // Conexão com MongoDB Atlas
 mongoose.connect(process.env.MONGO_URI, {
@@ -15,17 +21,17 @@ mongoose.connect(process.env.MONGO_URI, {
 const CounterSchema = new mongoose.Schema({ count: Number });
 const Counter = mongoose.model('Counter', CounterSchema);
 
-export default async (req, res) => {
-  if (req.method === 'GET') {
-    let counter = await Counter.findOne();
-    if (!counter) {
-      counter = new Counter({ count: 1 });
-    } else {
-      counter.count++;
-    }
-    await counter.save();
-    res.status(200).json({ count: counter.count });
+// Rota para obter e incrementar contagem
+app.get('/count', async (req, res) => {
+  let counter = await Counter.findOne();
+  if (!counter) {
+    counter = new Counter({ count: 1 });
   } else {
-    res.status(405).json({ message: 'Método não permitido' });
+    counter.count++;
   }
-};
+  await counter.save();
+  res.json({ count: counter.count });
+});
+
+// Exportação para Vercel
+export default app;
