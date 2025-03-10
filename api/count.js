@@ -1,46 +1,44 @@
-import express from 'express';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import cors from 'cors';
 
-dotenv.config();
+let isConnected = false;
 
-const app = express();  // <-- Definição da variável app
-
-app.use(cors());
-app.use(cors({
-  origin: 'http://localhost:5173'
-}));
-app.use(express.json());
-
-// Conexão com MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI, {})
-.then(() => console.log('MongoDB conectado'))
-.catch(err => console.error('Erro ao conectar MongoDB:', err));
-
-// Modelo para contagem de acessos
 const CounterSchema = new mongoose.Schema({ count: Number });
-const Counter = mongoose.model('Counter', CounterSchema);
+const Counter = mongoose.models.Counter || mongoose.model('Counter', CounterSchema);
 
-// Rota para obter e incrementar contagem
-app.get('/count', async (req, res) => {
-  let counter = await Counter.findOne();
-  if (!counter) {
-    counter = new Counter({ count: 1 });
-  } else {
-    counter.count++;
+async function connectToDB() {
+  if (isConnected) return;
+
+  await mongoose.connect(process.env.MONGO_URI);
+  isConnected = true;
+}
+
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end(); // resposta ao preflight
   }
-  await counter.save();
-  res.json({ count: counter.count });
-});
 
-app.get("/", (req, res) => {
-  res.send("API está funcionando!");
-});
+  if (req.method === 'GET') {
+    try {
+      await connectToDB();
 
-// Porta do servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('Servidor rodando na porta ${PORT}'));
+      let counter = await Counter.findOne();
+      if (!counter) {
+        counter = new Counter({ count: 1 });
+      } else {
+        counter.count++;
+      }
+      await counter.save();
 
-// Exportação para Vercel
-export default app;
+      return res.status(200).json({ success: true, count: counter.count });
+    } catch (error) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  } else {
+    return res.status(405).json({ success: false, message: 'Método não permitido' });
+  }
+}
