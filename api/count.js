@@ -5,15 +5,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const app = express();
+const app = express();  // <-- Definição da variável app
+
 app.use(cors());
 app.use(express.json());
 
 // Conexão com MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGO_URI, {})
 .then(() => console.log('MongoDB conectado'))
 .catch(err => console.error('Erro ao conectar MongoDB:', err));
 
@@ -32,6 +30,14 @@ app.get('/count', async (req, res) => {
   await counter.save();
   res.json({ count: counter.count });
 });
+
+app.get("/", (req, res) => {
+  res.send("API está funcionando!");
+});
+
+// Porta do servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('Servidor rodando na porta ${PORT}'));
 
 // Exportação para Vercel
 export default app;
