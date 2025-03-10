@@ -8,6 +8,9 @@ dotenv.config();
 const app = express();  // <-- Definição da variável app
 
 app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173'
+}));
 app.use(express.json());
 
 // Conexão com MongoDB Atlas
